@@ -32,8 +32,8 @@ function createStore(reducer) {
   };
 }
 
-// App Codes
-//Add todos reducer
+// App Code
+// Add todos reducer
 function todos(state = [], action) {
   switch (action.type) {
     case "ADD_TODO":
@@ -51,7 +51,7 @@ function todos(state = [], action) {
   }
 }
 
-//Add goals reducer
+// Add goals reducer
 function goals(state = [], action) {
   switch (action.type) {
     case "ADD_GOAL":
@@ -62,8 +62,16 @@ function goals(state = [], action) {
       return state;
   }
 }
+// Add root reducer, responsible for calling the correct reducer
+//when the specific actions are dispatched
+function app(state = {}, action) {
+  return {
+    todos: todos(state.todos, action),
+    goals: goals(state.goals, action),
+  };
+}
 
-const store = createStore(todos);
+const store = createStore(app);
 
 store.subscribe(() => {
   console.log("The new state is: ", store.getState());
@@ -73,11 +81,59 @@ store.dispatch({
   type: "ADD_TODO",
   todo: {
     id: 0,
-    name: "Learn Redux",
+    name: "Learn React Native",
     complete: false,
   },
 });
 
+store.dispatch({
+  type: "ADD_TODO",
+  todo: {
+    id: 1,
+    name: "Build an App",
+    complete: false,
+  },
+});
+
+store.dispatch({
+  type: "ADD_TODO",
+  todo: {
+    id: 2,
+    name: "Read a book",
+    complete: true,
+  },
+});
+
+store.dispatch({
+  type: "REMOVE_TODO",
+  id: 1,
+});
+
+store.dispatch({
+  type: "TOGGLE_TODO",
+  id: 0,
+});
+
+store.dispatch({
+  type: "ADD_GOAL",
+  goal: {
+    id: 0,
+    name: "Learn Redux",
+  },
+});
+
+store.dispatch({
+  type: "ADD_GOAL",
+  goal: {
+    id: 1,
+    name: "Build more React projects",
+  },
+});
+
+store.dispatch({
+  type: "REMOVE_GOAL",
+  id: 0,
+});
 //Now whenever we want to update the state of our store, all we need to do
 // is call the dispatch and pass it the action which occured.
 
