@@ -99,7 +99,31 @@
         }
       }
 
-      function checkAndDispatch(store, action) {
+      //-------------------Add MiddleWare--------------------------------
+
+      // function checker(store) {
+      //   return function (next) {
+      //     // will be our next middleware if we have more than one or  the dispatch
+      //     return function (action) {
+      //       if (
+      //         action.type === ADD_TODO &&
+      //         action.todo.name.toLowerCase().includes("bitcoin")
+      //       ) {
+      //         return alert("Nope. That is a bad idea.");
+      //       }
+
+      //       if (
+      //         action.type === ADD_GOAL &&
+      //         action.goal.name.toLowerCase().includes("bitcoin")
+      //       ) {
+      //         return alert("That is a bad idea.");
+      //       }
+      //       return next(action);
+      //     };
+      //   };
+      // }
+
+      const checker = (store) => (next) => (action) => {
         if (
           action.type === ADD_TODO &&
           action.todo.name.toLowerCase().includes("bitcoin")
@@ -113,14 +137,24 @@
         ) {
           return alert("That is a bad idea.");
         }
-        return store.dispatch(action);
-      }
+        return next(action);
+      };
+      // logger will a developer middleware will allow us to check what action was dispatched and the new state
+      const logger = (store) => (next) => (action) => {
+        console.group(action.type);
+        console.log("The action is ", action);
+        const result = next(action);
+        console.log("The new state is ", store.getState());
+        console.groupEnd();
+        return result;
+      };
 
       const store = Redux.createStore(
         Redux.combineReducers({
           todos,
           goals,
-        })
+        }),
+        Redux.applyMiddleware(checker, logger) // we pass the Middleware function as the second argument to the store
       );
 
       store.subscribe(() => {
@@ -142,8 +176,7 @@
         const input = document.getElementById("todo");
         const name = input.value;
         input.value = "";
-        checkAndDispatch(
-          store,
+        store.dispatch(
           addTodoAction({
             name,
             complete: false,
@@ -159,8 +192,7 @@
         const name = input.value;
         input.value = "";
 
-        checkAndDispatch(
-          store,
+        store.dispatch(
           addGoalAction({
             name,
             id: generateId(),
@@ -180,14 +212,14 @@
         const text = document.createTextNode(todo.name);
         // this function will be invoked when the button is cliked
         const removeBtn = createRemoveButton(() => {
-          checkAndDispatch(store, removeTodoAction(todo.id));
+          store.dispatch(removeTodoAction(todo.id));
         });
 
         node.appendChild(text);
         node.appendChild(removeBtn);
         node.style.textDecoration = todo.complete ? "line-through" : "none";
         node.addEventListener("click", () => {
-          checkAndDispatch(store, toggleTodoAction(todo.id));
+          store.dispatch(toggleTodoAction(todo.id));
         });
 
         document.getElementById("todos").appendChild(node);
@@ -198,7 +230,7 @@
         const text = document.createTextNode(goal.name);
 
         const removeBtn = createRemoveButton(() => {
-          checkAndDispatch(store, removeGoalAction(goal.id));
+          store.dispatch(removeGoalAction(goal.id));
         });
         node.appendChild(text);
         node.appendChild(removeBtn);
