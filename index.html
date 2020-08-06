@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/react@16.3.0-alpha.1/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@16.3.0-alpha.1/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+    <script src="https://tylermcginnis.com/goals-todos-api/index.js"></script>
   </head>
   <body>
     <div id="app"></div>
@@ -25,6 +26,8 @@
       const TOGGLE_TODO = "TOGGLE_TODO";
       const ADD_GOAL = "ADD_GOAL";
       const REMOVE_GOAL = "REMOVE_GOAL";
+      const RECEIVE_DATA = "RECEIVE_DATA"; // when receive data is dispatched,
+      // both todos and goals portion of our state will be updated.
 
       //Action creators
 
@@ -61,6 +64,14 @@
         };
       }
 
+      function receiveDataAction(todos, goals) {
+        return {
+          type: RECEIVE_DATA,
+          todos,
+          goals,
+        };
+      }
+
       // App Code
       function todos(state = [], action) {
         if (action.type === ADD_TODO) {
@@ -73,7 +84,10 @@
               ? todo
               : Object.assign({}, todo, { complete: !todo.complete })
           );
-        } else {
+        } else if (action.type === RECEIVE_DATA) {
+          return action.todos; // action.todos will be the default todos for our application
+        }
+        {
           return state;
         }
       }
@@ -84,6 +98,8 @@
             return state.concat([action.goal]);
           case REMOVE_GOAL:
             return state.filter((goal) => goal.id !== action.id);
+          case RECEIVE_DATA:
+            return action.goals;
           default:
             return state; // returns the state that was passed into it
         }
@@ -112,6 +128,15 @@
       //     };
       //   };
       // }
+
+      function loading(state = true, action) {
+        switch (action.type) {
+          case RECEIVE_DATA:
+            return false;
+          default:
+            return state;
+        }
+      }
 
       const checker = (store) => (next) => (action) => {
         if (
@@ -143,6 +168,7 @@
         Redux.combineReducers({
           todos,
           goals,
+          loading,
         }),
         Redux.applyMiddleware(checker, logger) // we pass the Middleware function as the second argument to the store
       );
@@ -253,12 +279,23 @@
           // is invoked immediatly after the component is mounted?inserted into the tree
           const { store } = this.props;
 
+          Promise.all([API.fetchTodos(), API.fetchGoals()]).then(
+            ([todos, goals]) => {
+              store.dispatch(receiveDataAction(todos, goals));
+            }
+          );
+
           store.subscribe(() => this.forceUpdate()); // we want to cause a re render force.
         }
 
         render() {
           const { store } = this.props;
-          const { todos, goals } = store.getState();
+          const { todos, goals, loading } = store.getState();
+
+          if (loading === true) {
+            return <h3>Loading...</h3>;
+          }
+
           return (
             <div>
               <Todos todos={todos} store={this.props.store} />
