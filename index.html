@@ -73,19 +73,74 @@
         };
       }
 
+      function handleAddTodo(name, callBack) {
+        return (dispatch) => {
+          return API.saveTodo(name)
+            .then((todo) => {
+              dispatch(addTodoAction(todo));
+              callBack;
+            })
+            .catch(() => {
+              alert("There was a error. Please try again.");
+            });
+        };
+      }
+
       function handleDeleteTodo(todo) {
         // instead of returning an object we return a function
         return (dispatch) => {
           dispatch(removeTodoAction(todo.id));
 
           return API.deleteTodo(todo.id).catch(() => {
-            this.props.store.dispatch(addTodoAction(todo)); // we put the todo back on if the delete fails
+            dispatch(addTodoAction(todo)); // we put the todo back on if the delete fails
             alert("An error occurred. Please try again");
           });
         };
       }
 
-      // App Code
+      function handleToggle(id) {
+        return (dispatch) => {
+          dispatch(toggleTodoAction(id));
+
+          return API.saveTodoToggle(id).catch(() => {
+            dispatch(toggleTodoAction(id));
+            alert("An error occurred. Please try again later.");
+          });
+        };
+      }
+
+      function handleAddGoal(name, callBack) {
+        return (dispatch) => {
+          return API.saveGoal(name)
+            .then((goal) => {
+              dispatch(addGoalAction(goal));
+              callBack();
+            })
+            .catch(() => alert("There was an error.Try again"));
+        };
+      }
+
+      function handleDeleteGoal(goal) {
+        return (dispatch) => {
+          dispatch(removeGoalAction(goal.id));
+
+          return API.deleteGoal(goal.id).catch(() => {
+            dispatch(addGoalAction(goal));
+            alert("An error occurred. Please try again.");
+          });
+        };
+      }
+
+      function handleInitialData() {
+        return (dispatch) => {
+          return Promise.all([API.fetchTodos(), API.fetchGoals()]).then(
+            ([todos, goals]) => {
+              dispatch(receiveDataAction(todos, goals));
+            }
+          );
+        };
+      }
+
       function todos(state = [], action) {
         if (action.type === ADD_TODO) {
           return state.concat([action.todo]);
@@ -177,12 +232,14 @@
         return result;
       };
 
-      {/* const thunk = (store) => (next) => (action) => {
+      {
+        /* const thunk = (store) => (next) => (action) => {
         if (typeof action === "function") {
           return action(store.dispatch);
         }
         return next(action);
-      }; */}
+      }; */
+      }
 
       const store = Redux.createStore(
         Redux.combineReducers({
@@ -219,24 +276,10 @@
         addItem = (event) => {
           event.preventDefault();
 
-          return API.saveTodo(this.input.value)
-            .then((todo) => {
-              this.props.store.dispatch(addTodoAction(todo));
-              this.input.value = "";
-            })
-            .catch(() => {
-              alert("There was a error. Please try again.");
-            });
+          this.props.store.dispatch(
+            handleAddTodo(this.input.value, () => (this.input.value = ""))
+          );
         };
-
-        /* removeItem = (todo) => {
-          // when our remove item is invoked we also want to update our API
-          return API.deleteTodo(todo.id).then(() => {
-            this.props.store.dispatch(removeTodoAction(todo.id));
-            // this will return us a promise that wheh resolved we can call this.props.store.dispatch
-            //now we first delete the item from the database and once this is resolved then we delete the item from the UI
-          });
-        }; */
 
         /* Add optmistic update: we remove the item first and if there is an issue we add the item back */
 
@@ -245,12 +288,7 @@
         };
 
         toggleItem = (id) => {
-          this.props.store.dispatch(toggleTodoAction(id));
-
-          return API.saveTodoToggle(id).catch(() => {
-            this.props.store.dispatch(toggleTodoAction(id));
-            alert("An error occurred. Please try again later.");
-          });
+          this.props.store.dispatch(handleToggle(id));
         };
 
         render() {
@@ -277,22 +315,13 @@
       class Goals extends React.Component {
         addItem = (event) => {
           event.preventDefault();
-
-          return API.saveGoal(this.input.value)
-            .then((goal) => {
-              this.props.store.dispatch(addGoalAction(goal));
-              this.input.value = "";
-            })
-            .catch(() => alert("There was an error.Try again"));
+          this.props.store.dispatch(
+            handleAddGoal(this.input.value, () => (this.input.value = ""))
+          );
         };
 
         removeItem = (goal) => {
-          this.props.store.dispatch(removeGoalAction(goal.id));
-
-          return API.deleteGoal(goal.id).catch(() => {
-            this.props.store.dispatch(addGoalAction(goal));
-            alert("An error occurred. Please try again.");
-          });
+          this.props.store.dispatch(handleDeleteGoal(goal));
         };
 
         render() {
@@ -317,11 +346,7 @@
           // is invoked immediatly after the component is mounted/inserted into the tree
           const { store } = this.props;
 
-          Promise.all([API.fetchTodos(), API.fetchGoals()]).then(
-            ([todos, goals]) => {
-              store.dispatch(receiveDataAction(todos, goals));
-            }
-          );
+          store.dispatch(handleInitialData());
 
           store.subscribe(() => this.forceUpdate()); // we want to cause a re render force.
         }
