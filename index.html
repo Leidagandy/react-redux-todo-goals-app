@@ -72,6 +72,18 @@
         };
       }
 
+      function handleDeleteTodo(todo) {
+        // instead of returning an object we return a function
+        return (dispatch) => {
+          dispatch(removeTodoAction(todo.id));
+
+          return API.deleteTodo(todo.id).catch(() => {
+            this.props.store.dispatch(addTodoAction(todo)); // we put the todo back on if the delete fails
+            alert("An error occurred. Please try again");
+          });
+        };
+      }
+
       // App Code
       function todos(state = [], action) {
         if (action.type === ADD_TODO) {
@@ -164,13 +176,20 @@
         return result;
       };
 
+      const thunk = (store) => (next) => (action) => {
+        if (typeof action === "function") {
+          return action(store.dispatch);
+        }
+        return next(action);
+      };
+
       const store = Redux.createStore(
         Redux.combineReducers({
           todos,
           goals,
           loading,
         }),
-        Redux.applyMiddleware(checker, logger) // we pass the Middleware function as the second argument to the store
+        Redux.applyMiddleware(thunk, checker, logger) // we pass the Middleware function as the second argument to the store
       );
     </script>
 
@@ -221,12 +240,7 @@
         /* Add optmistic update: we remove the item first and if there is an issue we add the item back */
 
         removeItem = (todo) => {
-          this.props.store.dispatch(removeTodoAction(todo.id));
-
-          return API.deleteTodo(todo.id).catch(() => {
-            this.props.store.dispatch(addTodoAction(todo)); // we put the todo back on if the delete fails
-            alert("An error occurred. Please try again");
-          });
+          this.props.store.dispatch(handleDeleteTodo(todo));
         };
 
         toggleItem = (id) => {
