@@ -198,6 +198,7 @@
       class Todos extends React.Component {
         addItem = (event) => {
           event.preventDefault();
+
           const name = this.input.value;
           this.input.value = "";
 
@@ -210,12 +211,33 @@
           );
         };
 
+        /* removeItem = (todo) => {
+          // when our remove item is invoked we also want to update our API
+          return API.deleteTodo(todo.id).then(() => {
+            this.props.store.dispatch(removeTodoAction(todo.id));
+            // this will return us a promise that wheh resolved we can call this.props.store.dispatch
+            //now we first delete the item from the database and once this is resolved then we delete the item from the UI
+          });
+        }; */
+
+        /* Add optmistic update: we remove the item first and if there is an issue we add the item back */
+
         removeItem = (todo) => {
           this.props.store.dispatch(removeTodoAction(todo.id));
+
+          return API.deleteTodo(todo.id).catch(() => {
+            this.props.store.dispatch(addTodoAction(todo)); // we put the todo back on if the delete fails
+            alert("An error occurred. Please try again");
+          });
         };
 
         toggleItem = (id) => {
           this.props.store.dispatch(toggleTodoAction(id));
+
+          return API.saveTodoToggle(id).catch(() => {
+            this.props.store.dispatch(toggleTodoAction(id));
+            alert("An error occurred. Please try again later.");
+          });
         };
 
         render() {
@@ -255,6 +277,11 @@
 
         removeItem = (goal) => {
           this.props.store.dispatch(removeGoalAction(goal.id));
+
+          return API.deleteGoal(goal.id).catch(() => {
+            this.props.store.dispatch(addGoalAction(goal));
+            alert("An error occurred. Please try again.");
+          });
         };
 
         render() {
@@ -276,7 +303,7 @@
 
       class App extends React.Component {
         componentDidMount() {
-          // is invoked immediatly after the component is mounted?inserted into the tree
+          // is invoked immediatly after the component is mounted/inserted into the tree
           const { store } = this.props;
 
           Promise.all([API.fetchTodos(), API.fetchGoals()]).then(
